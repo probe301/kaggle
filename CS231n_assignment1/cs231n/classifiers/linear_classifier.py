@@ -69,7 +69,7 @@ class LinearClassifier(object):
       #########################################################################
 
       if verbose and it % 100 == 0:
-        print 'iteration %d / %d: loss %f' % (it, num_iters, loss)
+        print ('iteration %d / %d: loss %f' % (it, num_iters, loss))
 
     return loss_history
 
@@ -96,10 +96,10 @@ class LinearClassifier(object):
     #                           END OF YOUR CODE                              #
     ###########################################################################
     return y_pred
-  
+
   def loss(self, X_batch, y_batch, reg):
     """
-    Compute the loss function and its derivative. 
+    Compute the loss function and its derivative.
     Subclasses will override this.
 
     Inputs:
