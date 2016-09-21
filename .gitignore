@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 desktop.ini
 .ipynb_checkpoints/
+*.swp
+*.pyc
+.env/*
+
 
 # C extensions
 *.so
