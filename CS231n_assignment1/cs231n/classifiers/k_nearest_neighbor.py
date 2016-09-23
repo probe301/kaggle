@@ -94,8 +94,9 @@ class KNearestNeighbor(object):
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      x = X[i]
-      line = self.X_train
+      x = X[i, :]
+      line = np.linalg.norm(self.X_train - x, axis=1).transpose()
+      # line = np.sqrt(np.sum(np.square(x - self.X_train), axis=1)).transpose()
       dists[i, :] = line
       #######################################################################
       #                         END OF YOUR CODE                            #
@@ -106,7 +107,6 @@ class KNearestNeighbor(object):
     """
     Compute the distance between each test point in X and each training point
     in self.X_train using no explicit loops.
-
     Input / Output: Same as compute_distances_two_loops
     """
     num_test = X.shape[0]
@@ -124,11 +124,20 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    pass
+    tr_sum = np.sum(self.X_train * self.X_train, axis=1).reshape(1, num_train)
+    te_sum = np.sum(X * X, axis=1).reshape(1, num_test).T
+    # print(np.dot(self.X_train, X.T).T.shape, 'no loop')
+    # print(tr_sum.shape)
+    # print(te_sum.shape)
+
+    # (a-b)**2 == a**2 + b**2 - 2*a*b
+    dists = -2 * np.dot(self.X_train, X.T).T + tr_sum + te_sum
+    return np.sqrt(dists)
+
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
-    return dists
+    # return dists
 
   def predict_labels(self, dists, k=1):
     """
