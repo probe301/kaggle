@@ -14,11 +14,11 @@ def load_CIFAR_batch(filename):
     Y = np.array(Y)
     return X, Y
 
-def load_CIFAR10(ROOT):
+def load_CIFAR10(ROOT, n=1):
   """ load all of cifar """
   xs = []
   ys = []
-  for b in range(1,2):
+  for b in range(1, n+1):
     f = os.path.join(ROOT, 'data_batch_%d' % (b, ))
     X, Y = load_CIFAR_batch(f)
     xs.append(X)
