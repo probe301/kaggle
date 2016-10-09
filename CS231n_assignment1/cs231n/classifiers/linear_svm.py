@@ -28,19 +28,29 @@ def svm_loss_naive(W, X, y, reg):
   for i in range(num_train):
     scores = X[i].dot(W)
     correct_class_score = scores[y[i]]
+
+    margin_positive_count = 0  # count 所有 margin>0 的次数
+
     for j in range(num_classes):
       if j == y[i]:
-        continue
+        continue  # j==y[i]时 在微分的两个part里都不会对dW有贡献
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
+        margin_positive_count += 1 # 没满足边界值的分类数量 对损失函数产生贡献
         loss += margin
+        dW[:, j] += X[i]
+
+    dW[:, y[i]] -= X[i] * margin_positive_count
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
+  loss += 0.5 * reg * np.sum(W * W)  # Add regularization to the loss.
 
-  # Add regularization to the loss.
-  loss += 0.5 * reg * np.sum(W * W)
+  dW /= num_train
+  dW += reg * W        # 需要加上正则化损失的求导, 但还不太明白
+
+
 
   #############################################################################
   # TODO:                                                                     #
