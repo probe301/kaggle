@@ -50,8 +50,6 @@ def svm_loss_naive(W, X, y, reg):
   dW /= num_train
   dW += reg * W        # 需要加上正则化损失的求导, 但还不太明白
 
-
-
   #############################################################################
   # TODO:                                                                     #
   # Compute the gradient of the loss function and store it dW.                #
@@ -60,9 +58,9 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
-
-
   return loss, dW
+
+
 
 
 def svm_loss_vectorized(W, X, y, reg):
@@ -79,11 +77,21 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  # num_classes = W.shape[1]
+  num_train = X.shape[0]
+  total_scores = X.dot(W)
+
+  correct_class_scores = total_scores[range(num_train), y].reshape(-1, 1)
+  margins = total_scores - correct_class_scores + 1
+  margins[range(num_train), y] = 0  # 正确的分类之前也算成有1的损失, 需要 = 0
+  margins = margins.clip(min=0)
+  loss = margins.sum() / num_train
+
+  loss += 0.5 * reg * np.sum(W * W)  # Add regularization to the loss.
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-
 
   #############################################################################
   # TODO:                                                                     #
@@ -94,7 +102,20 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+
+  # 首先假设所有的分类全都是不正确的, 算出一个 dW
+  # 以 j == yi 做一个mask, 按照 mask 过滤出来, 再修改 j == yi 的对应梯度
+
+  # print('after loss\n', margins)
+  margins[margins > 0] = 1  # 处理为仅含 0 1 值, 即 都按照 j != yi 来算
+  # print('after 0 1\n', margins)
+
+  margins[range(num_train), y] = -margins.sum(axis=1)  # 修正 j == yi 的情况
+  # print('after sum neg yi\n', margins)
+
+  dW = X.T.dot(margins)
+  dW /= num_train
+  dW += reg * W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

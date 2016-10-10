@@ -98,7 +98,7 @@ def eval_numerical_gradient_blobs(f, inputs, output, h=1e-5):
 
 def eval_numerical_gradient_net(net, inputs, output, h=1e-5):
   return eval_numerical_gradient_blobs(lambda *args: net.forward(),
-              inputs, output, h=h)
+                                       inputs, output, h=h)
 
 
 def grad_check_sparse(f, x, analytic_grad, num_checks=10, h=1e-5):
