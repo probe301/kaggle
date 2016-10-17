@@ -37,24 +37,57 @@ def softmax_loss_naive(W, X, y, reg):
   for i in range(num_train):
     scores = X[i].dot(W)
     # correct_class_score = scores[y[i]]
+    yi = y[i]
     scores -= np.max(scores)  # 最大分数归为0
-    p = - np.log(np.exp(scores[y[i]]) / np.sum(np.exp(scores)))
-    loss += p
+    probs = np.exp(scores) / np.sum(np.exp(scores)) # 对数归一化概率
+    loss += - np.log(probs)[yi]
 
-    # wyi and wj (where j!=yi)
-    # f(wyi) => log(e^(x*wyi)+b) - x*wyi  ---- where b is sum(wj*x)
-    # d/dwyi => x*(e^(x*wyi)) / (e^(x*wyi)+b) - x
-    # f(wj) => log(e^(x*wj + x*wyi + x*wk) - x*wyi)    ---- where k is not j, not yi
-    # d/dwj => 跟上面差不多, 甚至最后的 - x*wyi 不是自变量了, 还能少一项
+    # 需要 Li(w) = -log(e^(wyi*x) / ∑(e^(wj*x))) 对 w 求导
+    # 其中 wyi 表示正确分类的得分
+    #      wj 表示所有分类的得分, 只用于∑ (含正确的那个分类)
+    #      k 表示单指j其中的某一个, 可以是正确分类或错误分类
 
-    # 可能不需要分别对待 wyi 和 wj, 无所谓正确分类和错误分类, 应该一视同仁计算
-    # loss = - log(e^(wyi*x) / (e^(wyi*x) + sum(e^(wj*x))))
-    # dloss/dwyi (yi可以表示正确或错误分类, 与SVM不同)
-    # = - x*b / (e^(x*wyi) + b)   ---- where b = sum(e^(x*wj)) < j!=yi
-    #
+    # 设 f(k) = wk*x
+    # 设 P(k) = e^(wk*x) / ∑(e^(wj*x)   即'对数归一化概率',
+    #                                   可事先减去最大的分值, 使最大数归0方便计算
+
+    # 需要求 dLi/dw
+    # 分解为 dLi/dw = dLi/df(k) * df(k)/dw
+    # part1 : 求 dLi/df
+    # L(f) = -log(e^f / ∑j(e^f))
+
+    # 当 k 为正确分类时:
+    # L(fk) = -log(e^fk / ∑(e^fj))
+    #       = -fk + log(∑(e^fj))   ---- log(a/b) = loga - logb
+    # dL/dfk = -1 + (1/(∑(e^fj))) * (∑(e^fj))'   ---- log(x)' = 1/x
+    #        = -1 + (1/(∑(e^fj))) * (e^fk)'      ---- 因 ∑(e^fj) 中只有 fk 那一项有用
+    #                                            ---- 其余是常量项
+    #        = -1 + (1/(∑(e^fj))) * (e^fk) * (fk)' ---- e^x' = e^x
+    #        = -1 + P(k)
+
+    # 当 k 为错误分类时:
+    # L(fk) = -log(e^fyi / ∑(e^fj))
+    #       = -fyi + log(∑(e^fj))   ---- log(a/b) = loga - logb
+    # dL/dfk = 0 + (1/(∑(e^fj))) * (∑(e^fj))'
+    # 同上 ....
+    # dL/dfk = P(k)
+
+    # part2 : 求 df(k)/dw -> 比较简单 这个就是 x
+
+    # 最终:
+    # dLi/dw = dLi/df(k) * df(k)/dw
+    # = (-1 + P(k)) * x  (当 k 为正确分类 k = yi)
+    #   (P(k)) * x       (当 k 为错误分类 k ≠ yi)
+
+
+
+
     for j in range(num_classes):
-      b = np.sum(np.exp(scores[[k for k in range(num_classes) if k != j]]))
-      dW[:, j] = - X[i] * b / (np.exp(scores[y[i]]) + b)
+      if j == yi:
+        dW[:, j] += (-1 + probs[j]) * X[i]
+      else:
+        dW[:, j] += (probs[j]) * X[i]
+
 
   loss /= num_train
   loss += 0.5 * reg * np.sum(W * W)  # Add regularization to the loss.
