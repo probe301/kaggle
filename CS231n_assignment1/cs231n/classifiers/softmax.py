@@ -39,8 +39,8 @@ def softmax_loss_naive(W, X, y, reg):
     # correct_class_score = scores[y[i]]
     yi = y[i]
     scores -= np.max(scores)  # 最大分数归为0
-    probs = np.exp(scores) / np.sum(np.exp(scores)) # 对数归一化概率
-    loss += - np.log(probs)[yi]
+    probs = np.exp(scores) / np.sum(np.exp(scores)) # 归一化概率
+    loss += -np.log(probs[yi])
 
     # 需要 Li(w) = -log(e^(wyi*x) / ∑(e^(wj*x))) 对 w 求导
     # 其中 wyi 表示正确分类的得分
@@ -48,7 +48,7 @@ def softmax_loss_naive(W, X, y, reg):
     #      k 表示单指j其中的某一个, 可以是正确分类或错误分类
 
     # 设 f(k) = wk*x
-    # 设 P(k) = e^(wk*x) / ∑(e^(wj*x)   即'对数归一化概率',
+    # 设 P(k) = e^(wk*x) / ∑(e^(wj*x)   即'归一化概率',
     #                                   可事先减去最大的分值, 使最大数归0方便计算
 
     # 需要求 dLi/dw
@@ -79,46 +79,58 @@ def softmax_loss_naive(W, X, y, reg):
     # = (-1 + P(k)) * x  (当 k 为正确分类 k = yi)
     #   (P(k)) * x       (当 k 为错误分类 k ≠ yi)
 
-
-
-
     for j in range(num_classes):
       if j == yi:
         dW[:, j] += (-1 + probs[j]) * X[i]
       else:
         dW[:, j] += (probs[j]) * X[i]
 
-
   loss /= num_train
   loss += 0.5 * reg * np.sum(W * W)  # Add regularization to the loss.
-
   dW /= num_train
   dW += reg * W
 
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
-
   return loss, dW
+
+
+
+
 
 
 def softmax_loss_vectorized(W, X, y, reg):
   """
   Softmax loss function, vectorized version.
-
   Inputs and outputs are the same as softmax_loss_naive.
   """
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
-
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  Scores = X.dot(W)
+  Scores -= np.max(Scores, axis=1).reshape(num_train, 1)
+
+  Sum_e_scores = np.sum(np.exp(Scores), axis=1)
+  Probs = np.exp(Scores) / Sum_e_scores.reshape(num_train, 1)
+  # Mask = np.zeros_like(Probs)
+  # Mask[range(num_train), y] = 1
+
+  loss = np.sum(-np.log(Probs[range(num_train), y]))
+  Probs[range(num_train), y] -= 1
+  dW = X.T.dot(Probs)
+
+  loss /= num_train
+  loss += 0.5 * reg * np.sum(W * W)
+  dW /= num_train
+  dW += reg * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
