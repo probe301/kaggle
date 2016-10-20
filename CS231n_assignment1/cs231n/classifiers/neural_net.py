@@ -68,20 +68,27 @@ class TwoLayerNet(object):
     N, D = X.shape
 
     # Compute the forward pass
-    scores = None
+    Scores = None
     #############################################################################
     # TODO: Perform the forward pass, computing the class scores for the input. #
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    def relu(X):
+      return X.clip(min=0)
+    H1 = np.dot(X, W1) + b1
+    M = relu(H1)
+    Scores = np.dot(M, W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
-    
     # If the targets are not given then jump out, we're done
     if y is None:
-      return scores
+      return Scores
+
+
+
+
 
     # Compute the loss
     loss = None
@@ -92,7 +99,14 @@ class TwoLayerNet(object):
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
-    pass
+    Scores -= np.max(Scores, axis=1).reshape(N, 1)
+    Sum_e_scores = np.sum(np.exp(Scores), axis=1).reshape(N, 1)
+    Probs = np.exp(Scores) / Sum_e_scores
+    loss = np.sum(-np.log(Probs[range(N), y]))
+
+    loss /= N
+    loss += 0.5 * reg * np.sum(W1 * W1)
+    loss += 0.5 * reg * np.sum(W2 * W2)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -104,7 +118,31 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    grads['W1'] = np.zeros_like(W1)
+    grads['b1'] = np.zeros_like(b1)
+    grads['W2'] = np.zeros_like(W2)
+    grads['b2'] = np.zeros_like(b2)
+
+
+    # Probs shape N, C
+    # W1    shape D, H
+    # b1    shape H
+    # W2    shape H, C
+    # b2    shape C
+    # H1    shape N, H      ---- H1 = np.dot(X, W1) + b1
+    # M     shape N, H      ---- M = relu(H1)
+
+    Probs[range(N), y] -= 1  # part dL/df
+    grads['b2'] = np.sum(Probs, axis=0) / N
+
+    grads['W2'] = M.T.dot(Probs) / N + reg * W2
+
+    grads_M = Probs.dot(W2.T)  # 为什么这里不需要 / N ?
+    H1_mask = H1 > 0
+    # print(H1_mask)
+    grads['b1'] = np.sum(grads_M * H1_mask, axis=0) / N
+
+    grads['W1'] = X.T.dot(grads_M * H1_mask) / N + reg * W1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -140,7 +178,7 @@ class TwoLayerNet(object):
     train_acc_history = []
     val_acc_history = []
 
-    for it in xrange(num_iters):
+    for it in range(num_iters):
       X_batch = None
       y_batch = None
 
@@ -169,7 +207,7 @@ class TwoLayerNet(object):
       #########################################################################
 
       if verbose and it % 100 == 0:
-        print 'iteration %d / %d: loss %f' % (it, num_iters, loss)
+        print ('iteration %d / %d: loss %f' % (it, num_iters, loss))
 
       # Every epoch, check train and val accuracy and decay learning rate.
       if it % iterations_per_epoch == 0:
