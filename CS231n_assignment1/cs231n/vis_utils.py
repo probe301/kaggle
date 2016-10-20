@@ -17,9 +17,9 @@ def visualize_grid(Xs, ubound=255.0, padding=1):
   grid = np.zeros((grid_height, grid_width, C))
   next_idx = 0
   y0, y1 = 0, H
-  for y in xrange(grid_size):
+  for y in range(grid_size):
     x0, x1 = 0, W
-    for x in xrange(grid_size):
+    for x in range(grid_size):
       if next_idx < N:
         img = Xs[next_idx]
         low, high = np.min(img), np.max(img)
@@ -45,19 +45,19 @@ def vis_grid(Xs):
   for y in range(A):
     for x in range(A):
       if n < N:
-        G[y*H+y:(y+1)*H+y, x*W+x:(x+1)*W+x, :] = Xs[n,:,:,:]
+        G[y*H+y:(y+1)*H+y, x*W+x:(x+1)*W+x, :] = Xs[n, :, :, :]
         n += 1
   # normalize to [0,1]
   maxg = G.max()
   ming = G.min()
   G = (G - ming)/(maxg-ming)
   return G
-  
+
 def vis_nn(rows):
   """ visualize array of arrays of images """
   N = len(rows)
   D = len(rows[0])
-  H,W,C = rows[0][0].shape
+  H, W, C = rows[0][0].shape
   Xs = rows[0][0]
   G = np.ones((N*H+N, D*W+D, C), Xs.dtype)
   for y in range(N):
