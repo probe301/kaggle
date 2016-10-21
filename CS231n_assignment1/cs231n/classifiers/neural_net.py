@@ -174,6 +174,7 @@ class TwoLayerNet(object):
     - verbose: boolean; if true print progress during optimization.
     """
     num_train = X.shape[0]
+    # assert(num_train % batch_size == 0)
     iterations_per_epoch = max(int(num_train / batch_size), 1)
 
     # Use SGD to optimize the parameters in self.model
@@ -189,9 +190,18 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      indices = np.random.randint(0, num_train, batch_size)
-      X_batch = X[indices]
-      y_batch = y[indices]
+      it_in_epoch = it % iterations_per_epoch
+
+      if it_in_epoch == 0:
+        indices = np.random.randint(0, num_train, num_train)
+        # 不应该每次随机出来 batch_size 个元素,
+        # 应该全部随机排序好, 每次取一段, 经过一个 epoch 正好排完一轮
+        # 否则就成了自助采样了
+      slicer = np.arange(batch_size*it_in_epoch, batch_size*(it_in_epoch+1))
+      # print(slicer)
+      # print(indices[slicer])
+      X_batch = X[indices[slicer]]
+      y_batch = y[indices[slicer]]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
