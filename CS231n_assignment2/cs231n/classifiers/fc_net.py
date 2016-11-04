@@ -230,6 +230,8 @@ class FullyConnectedNet(object):
       first_dim = hidden_dim
     self.params['W' + str(i+1)] = dist_normal(first_dim, num_classes)
     self.params['b' + str(i+1)] = dist_zero(num_classes)
+
+    # print('init parmas W1', self.params['W1'])
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################

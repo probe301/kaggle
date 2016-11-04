@@ -77,6 +77,9 @@ def sgd_momentum(w, dw, config=None):
 
 
 
+
+
+
 def rmsprop(x, dx, config=None):
   """
   Uses the RMSProp update rule, which uses a moving average of squared gradient
