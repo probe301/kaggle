@@ -110,6 +110,9 @@ class Solver(object):
     self.update_rule = kwargs.pop('update_rule', 'sgd')
     self.optim_config = kwargs.pop('optim_config', {})
     self.lr_decay = kwargs.pop('lr_decay', 1.0)
+
+    self.init_learning_rate = self.optim_config.get('learning_rate')
+
     self.batch_size = kwargs.pop('batch_size', 100)
     self.num_epochs = kwargs.pop('num_epochs', 10)
 
@@ -128,6 +131,34 @@ class Solver(object):
     self.update_rule = getattr(optim, self.update_rule)
 
     self._reset()
+
+
+
+  def report_hyper_params(self, verbose=False):
+    from collections import OrderedDict
+    params = OrderedDict()
+    params['model'] = self.model
+    params['update_rule'] = self.update_rule
+    params['last_train_acc'] = self.train_acc_history[-1]
+    params['best_train_acc'] = max(self.train_acc_history)
+    params['last_val_acc'] = self.val_acc_history[-1]
+    params['best_val_acc'] = max(self.val_acc_history)
+
+    params['num_layers'] = self.model.num_layers
+    params['num_epochs'] = self.num_epochs
+    params['reg'] = self.model.reg
+    params['lr_decay'] = self.lr_decay
+    params['init_learning_rate'] = self.init_learning_rate
+    # self.use_batchnorm = use_batchnorm
+    # self.use_dropout = dropout > 0
+    # config.setdefault('beta1', 0.9)
+    # config.setdefault('beta2', 0.999)
+    # config.setdefault('epsilon', 1e-8)
+    if verbose:
+      from pprint import pprint
+      pprint(params)
+    return params
+
 
 
   def _reset(self):
@@ -250,7 +281,7 @@ class Solver(object):
         self.train_acc_history.append(train_acc)
         self.val_acc_history.append(val_acc)
 
-        if self.verbose or True:
+        if self.verbose:  # or True:
           f_str = '(Epoch %d / %d) train acc: %f; val_acc: %f'
           print (f_str % (self.epoch, self.num_epochs, train_acc, val_acc))
 

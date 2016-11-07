@@ -224,7 +224,7 @@ class FullyConnectedNet(object):
 
     first_dim = input_dim
     for i, hidden_dim in enumerate(hidden_dims, 1):
-      print('init hidden ', i, first_dim, hidden_dim)
+      # print('init hidden ', i, first_dim, hidden_dim)
       self.params['W' + str(i)] = dist_normal(first_dim, hidden_dim)
       self.params['b' + str(i)] = dist_zero(hidden_dim)
       first_dim = hidden_dim
