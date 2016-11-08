@@ -138,17 +138,17 @@ class Solver(object):
     from collections import OrderedDict
     params = OrderedDict()
     params['model'] = self.model
-    params['update_rule'] = self.update_rule
-    params['last_train_acc'] = self.train_acc_history[-1]
-    params['best_train_acc'] = max(self.train_acc_history)
-    params['last_val_acc'] = self.val_acc_history[-1]
-    params['best_val_acc'] = max(self.val_acc_history)
+    # params['update_rule'] = self.update_rule
+    # params['last/best_train_acc'] = round(self.train_acc_history[-1], 6), round(max(self.train_acc_history), 6)
+    params['last_val_acc'] = round(self.val_acc_history[-1], 4)
+    params['best_val_acc'] = round(max(self.val_acc_history), 4)
 
-    params['num_layers'] = self.model.num_layers
-    params['num_epochs'] = self.num_epochs
-    params['reg'] = self.model.reg
-    params['lr_decay'] = self.lr_decay
-    params['init_learning_rate'] = self.init_learning_rate
+    # params['num_layers'] = self.model.num_layers
+    # params['num_epochs'] = self.num_epochs
+    params['init_learning_rate'] = round(self.init_learning_rate, 6)
+    params['lr_decay'] = round(self.lr_decay, 4)
+    params['reg'] = round(self.model.reg, 4)
+    params['weight_scale'] = round(self.model.weight_scale, 4)
     # self.use_batchnorm = use_batchnorm
     # self.use_dropout = dropout > 0
     # config.setdefault('beta1', 0.9)

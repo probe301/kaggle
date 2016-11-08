@@ -206,6 +206,7 @@ class FullyConnectedNet(object):
     self.num_layers = 1 + len(hidden_dims)
     self.dtype = dtype
     self.params = {}
+    self.weight_scale = weight_scale
 
     ############################################################################
     # TODO: Initialize the parameters of the network, storing all values in    #
