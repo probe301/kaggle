@@ -39,7 +39,8 @@ class Solver(object):
                   optim_config={
                     'learning_rate': 1e-3,
                   },
-                  lr_decay=0.95,
+
+                  ,
                   num_epochs=10, batch_size=100,
                   print_every=100)
   solver.train()

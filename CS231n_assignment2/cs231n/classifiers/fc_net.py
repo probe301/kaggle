@@ -221,6 +221,14 @@ class FullyConnectedNet(object):
     # parameters should be initialized to zero.                                #
     ############################################################################
     dist_normal = lambda a, b: np.random.normal(loc=0, scale=weight_scale, size=(a, b))
+
+    # 建议将神经元的权重向量初始化为：
+    # w = np.random.randn(n) / sqrt(n)。
+    # 其中n是输入数据的数量。
+    # 这样就保证了网络中所有神经元起始时有近似同样的输出分布。
+    # 实践经验证明，这样做可以提高收敛的速度。
+    # w = np.random.randn(n) * sqrt(2.0/n)。
+    # 这个形式是神经网络算法使用ReLU神经元时的当前最佳推荐
     dist_zero = lambda size: np.zeros(size)
 
     first_dim = input_dim
