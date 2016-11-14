@@ -161,6 +161,10 @@ class TwoLayerNet(object):
 
 
 
+
+
+
+
 class FullyConnectedNet(object):
   """
   A fully-connected neural network with an arbitrary number of hidden layers,
@@ -261,7 +265,7 @@ class FullyConnectedNet(object):
     # pass of the second batch normalization layer, etc.
     self.bn_params = []
     if self.use_batchnorm:
-      self.bn_params = [{'mode': 'train'} for i in xrange(self.num_layers - 1)]
+      self.bn_params = [{'mode': 'train'} for i in range(self.num_layers - 1)]
 
     # Cast all parameters to the correct datatype
     for k, v in self.params.items():

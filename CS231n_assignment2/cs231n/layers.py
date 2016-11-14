@@ -192,13 +192,33 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # the momentum variable to update the running mean and running variance,    #
     # storing your result in the running_mean and running_var variables.        #
     #############################################################################
-    sample_mean = np.mean(x, axis=0)
-    sample_var = np.var(x, axis=0)
+    # for copy βγεμσ²x̄√⋅⁄
+    # ∑x = sum(x)
+    # μ = 1/m * ∑x
+    # x_u = x-u
+    # σ² = 1/m * x_u²
+    # √σ² = √(σ²+ε)
+    # ÷√σ² = 1/√(σ²+ε)
+    # x̄ = x_u * ÷√σ²
+    # out = γ * x̄ + β
 
-    x_norm = (x - sample_mean) / np.sqrt(sample_var + eps)
-    out = x_norm * gamma + beta
-    running_mean = momentum * running_mean + (1 - momentum) * sample_mean
-    running_var = momentum * running_var + (1 - momentum) * sample_var
+
+    sumx = np.sum(x, axis=0)
+    μ = 1 / N * sumx
+    x_u = x - μ
+    x_u2 = x_u ** 2
+    σ2 = 1 / N * np.sum(x_u2, axis=0)
+    σ2ε = σ2 + eps
+    sqrt_σ2 = np.sqrt(σ2ε)
+    invert_sqrt_σ2 = 1 / sqrt_σ2
+    x̄ = x_u * invert_sqrt_σ2
+    out = gamma * x̄ + beta
+
+    # sample_mean = μ
+    # sample_var = σ2
+    running_mean = momentum * running_mean + (1 - momentum) * μ
+    running_var = momentum * running_var + (1 - momentum) * σ2
+    cache = (sumx, μ, x_u, x_u2, σ2, σ2ε, sqrt_σ2, invert_sqrt_σ2, x̄, gamma, beta)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -249,16 +269,46 @@ def batchnorm_backward(dout, cache):
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
-  pass
+  sumx, μ, x_μ, x_u2, σ2, σ2ε, sqrt_σ2, invert_sqrt_σ2, x̄, gamma, beta = cache
+  N, D = dout.shape
+  vsum = lambda x: np.sum(x, axis=0)
+  vexpand = lambda x: np.ones([N, D]) * x
+
+  dbeta = vsum(dout)
+  dgamma = vsum(x̄ * dout)
+  dx̄ = gamma * dout                 # [N, D]
+  # assert dx̄.shape, (N, D)
+  dinvert_sqrt_σ2 = vsum(x_μ * dx̄)  # from x_μ * invert_sqrt_σ2 = x̄
+  # assert dinvert_sqrt_σ2.shape, (D)
+  dx_μ_part1 = invert_sqrt_σ2 * dx̄  # from x_μ * invert_sqrt_σ2 = x̄ (part1)
+  # assert dx_μ_part1.shape, (N, D)
+  dsqrt_σ2 = -1 / (sqrt_σ2 ** 2) * dinvert_sqrt_σ2 # [D, ]
+  # assert dsqrt_σ2.shape, (D, )
+  dσ2 = 0.5 * (σ2ε ** -0.5) * dsqrt_σ2   # [D, ]   also, dε = same as dσ2
+  # assert dσ2.shape, (D, )
+  dx_u2 = 1/N * vexpand(dσ2)
+  # assert dx_u2.shape, (N, D)
+  dx_μ_part2 = 2 * x_μ * dx_u2       # [N, D] from sum x_μ² (part2)
+  # assert dx_μ_part2.shape, (N, D)
+  dx_μ = dx_μ_part1 + dx_μ_part2
+  # assert dx_μ.shape, (N, D)
+  dμ = - vsum(dx_μ)
+  dx_part1 = dx_μ               # from x - μ (part1)
+
+  dx_part2 = 1/N * vexpand(dμ)  # from μ = 1/m * sum(x) (part1)2
+  dx = dx_part1 + dx_part2
+
+  # 求平均运算: y = mean(x, axis=0)
+  # 其中 x.shape = [N, D], y.shape =［D, ]
+  # 梯度应为: dx = 1/N * np.ones([N, D]) * dy
+
+
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
 
   return dx, dgamma, dbeta
-
-
-
-
 
 
 
