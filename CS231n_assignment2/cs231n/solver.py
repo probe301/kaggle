@@ -251,6 +251,7 @@ class Solver(object):
     """
     Run optimization to train the model.
     """
+    # print('gradkeys', list(self.model.params.keys()))
     num_train = self.X_train.shape[0]
     iterations_per_epoch = max(int(num_train / self.batch_size), 1)
     num_iterations = self.num_epochs * iterations_per_epoch
