@@ -179,6 +179,22 @@ def affine_batchnorm_relu_backward(dout, cache):
 
 
 
+def affine_relu_dropout_forward(x, w, b, dropout_param):
+  out, fc_cache = affine_forward(x, w, b)
+  out, relu_cache = relu_forward(out)
+  out, dropout_cache = dropout_forward(out, dropout_param)
+  cache = (fc_cache, relu_cache, dropout_cache)
+  return out, cache
+
+def affine_relu_dropout_backward(dout, cache):
+  fc_cache, relu_cache, dropout_cache = cache
+  dout = dropout_backward(dout, dropout_cache)
+  dout = relu_backward(dout, relu_cache)
+  dout, dw, db = affine_backward(dout, fc_cache)
+  return dout, dw, db
+
+
+
 
 
 
@@ -225,6 +241,7 @@ class FullyConnectedNet(object):
     """
     self.use_batchnorm = use_batchnorm
     self.use_dropout = dropout > 0
+    assert not (self.use_dropout and self.use_batchnorm)
     self.reg = reg
     self.num_layers = 1 + len(hidden_dims)
     self.dtype = dtype
@@ -345,6 +362,9 @@ class FullyConnectedNet(object):
         list_params = out, Weight(i), bias(i), gamma(i), beta(i), self.bn_params[i-1]
         out, hidden_cache = affine_batchnorm_relu_forward(*list_params)
         forward_caches[i] = hidden_cache
+      elif self.use_dropout:
+        out, hidden_cache = affine_relu_dropout_forward(out, Weight(i), bias(i), self.dropout_param)
+        forward_caches[i] = hidden_cache
       else:
         out, hidden_cache = affine_relu_forward(out, Weight(i), bias(i))
         forward_caches[i] = hidden_cache
@@ -403,11 +423,14 @@ class FullyConnectedNet(object):
         grads['b' + str(i)] = db
         grads['gamma' + str(i)] = dgamma
         grads['beta' + str(i)] = dbeta
+      elif self.use_dropout:
+        dout, dw, db = affine_relu_dropout_backward(dout, forward_caches[i])
+        grads['W' + str(i)] = dw + self.reg * Weight(i)
+        grads['b' + str(i)] = db
       else:
         dout, dw, db = affine_relu_backward(dout, forward_caches[i])
         grads['W' + str(i)] = dw + self.reg * Weight(i)
         grads['b' + str(i)] = db
-
 
     ############################################################################
     #                             END OF YOUR CODE                             #

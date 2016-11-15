@@ -343,6 +343,20 @@ def batchnorm_backward_alt(dout, cache):
   return dx, dgamma, dbeta
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def dropout_forward(x, dropout_param):
   """
   Performs the forward pass for (inverted) dropout.
@@ -374,7 +388,9 @@ def dropout_forward(x, dropout_param):
     # TODO: Implement the training phase forward pass for inverted dropout.   #
     # Store the dropout mask in the mask variable.                            #
     ###########################################################################
-    pass
+    # H1 = np.maximum(0, np.dot(W1, X) + b1)
+    mask = (np.random.rand(*x.shape) < p) / p # 随机失活遮罩. 注意/p!
+    out = x * mask # drop!
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -382,7 +398,7 @@ def dropout_forward(x, dropout_param):
     ###########################################################################
     # TODO: Implement the test phase forward pass for inverted dropout.       #
     ###########################################################################
-    pass
+    out = x
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
@@ -409,13 +425,23 @@ def dropout_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the training phase backward pass for inverted dropout.  #
     ###########################################################################
-    pass
+    dx = dout * mask
     ###########################################################################
     #                            END OF YOUR CODE                             #
     ###########################################################################
   elif mode == 'test':
     dx = dout
   return dx
+
+
+
+
+
+
+
+
+
+
 
 
 def conv_forward_naive(x, w, b, conv_param):
