@@ -444,13 +444,17 @@ def dropout_backward(dout, cache):
 
 
 
+
+
+
+
 def conv_forward_naive(x, w, b, conv_param):
   """
   A naive implementation of the forward pass for a convolutional layer.
 
   The input consists of N data points, each with C channels, height H and width
   W. We convolve each input with F different filters, where each filter spans
-  all C channels and has height HH and width HH.
+  all C channels and has height HH and width WW.
 
   Input:
   - x: Input data of shape (N, C, H, W)
@@ -472,7 +476,64 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+  N, C, H, W = x.shape
+  F, C2, HH, WW = w.shape
+  assert C == C2
+  assert (H - HH + 2 * pad) % stride == 0
+  assert (W - WW + 2 * pad) % stride == 0
+  Hout = int((H - HH + 2 * pad) / stride) + 1 # 输出数据体空间尺寸(W-F +2P)/S+1
+  Wout = int((W - WW + 2 * pad) / stride) + 1
+
+  Field_body_size = C * HH * WW
+  # 如果输入是[227x227x3]，要与尺寸为11x11x3的滤波器以步长为4进行卷积，
+  # 就取输入中的[11x11x3]数据块，然后将其拉伸为长度为11x11x3=363的列向量
+  # 重复进行这一过程，因为步长为4，所以输出的宽高为(227-11)/4+1=55
+  # 所以得到im2col操作的输出矩阵X_col的尺寸是[363x3025]
+  # 其中每列是拉伸的感受野，共有55x55=3025个
+  # 注意因为感受野之间有重叠，所以输入数据体中的数字在不同的列中可能有重复
+
+  # 卷积层的权重也同样被拉伸成行
+  # 举例，如果有96个尺寸为[11x11x3]的滤波器
+  # 就生成一个矩阵W_row，尺寸为[96x363]
+
+  # 现在卷积的结果和进行一个大矩阵乘np.dot(W_row, X_col)是等价的了
+  # 这个操作的输出是[96x3025]，给出了每个滤波器在每个位置的点积输出
+  # 结果最后必须被重新变为合理的输出尺寸[55x55x96]
+  def x_to_col(x):
+    # padding first
+    # x means only one data record
+    # x.shape = C, H, W
+    cols = Hout * Wout
+    ret = np.zeros((Field_body_size, cols))  # ret.shape = rows, cols
+    # h, w means Field left up corner index
+    # print('0, W-WW+1, stride', 0, W-WW+1, stride)
+    cnt = 0
+    for h in range(0, H+pad*2-HH+1, stride):
+      for w in range(0, W+pad*2-WW+1, stride):
+        volumn = x[:, h:h+HH, w:w+WW]
+        ret[:, cnt] = volumn.reshape(Field_body_size)
+        cnt += 1
+    return ret
+
+  Wr = w.reshape(F, Field_body_size)
+  # x = np.pad(x, ((1, ), (0, )),  'constant', constant_values=0)
+  # 第二个参数是每个axis的pad数,
+  # 对于其中每个pad, 都分为before和after, 只写一个则是before=after
+  Xpad = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant', constant_values=0)
+  # out.shape N, F, Hout, Wout
+  out = np.zeros((N, F, Hout, Wout))
+  for i in range(N):
+    # print('W * Xpad[i]', (Wr * x_to_col(Xpad[i])).shape)
+    # Wr.shape = F, Field_body_size
+    xc = x_to_col(Xpad[i])  # xc.shape = Field_body_size, cols
+    vol_out = np.dot(Wr, xc) + b.reshape(F, 1)  # F, cols
+    # print('vol_out', vol_out.shape)
+    vol_out = vol_out.reshape(F, Hout, Wout)
+    # print('vol_out2', vol_out.shape)
+    out[i] = vol_out
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
