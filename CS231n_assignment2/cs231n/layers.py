@@ -519,17 +519,18 @@ def conv_forward_naive(x, w, b, conv_param):
   Xpad = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant', constant_values=0)
 
   out = np.zeros((N, F, Hout, Wout))  # out.shape N, F, Hout, Wout
+  Xc = np.zeros((N, Field_body_size, Hout*Wout))
   for i in range(N):
     # Wr.shape = F, Field_body_size
-    xc = x_to_col(Xpad[i])  # xc.shape = Field_body_size, cols
-    vol_out = np.dot(Wr, xc) + b.reshape(F, 1)  # F, cols
+    Xc[i] = x_to_col(Xpad[i])  # Xc[i].shape = Field_body_size, cols
+    vol_out = np.dot(Wr, Xc[i]) + b.reshape(F, 1)  # F, cols
     vol_out = vol_out.reshape(F, Hout, Wout)
     out[i] = vol_out
 
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, w, b, conv_param)
+  cache = (x, w, b, conv_param, Xc)
   return out, cache
 
 
@@ -550,11 +551,50 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+
+  def to_volumn(dXci):
+    dXci       # shape Field_body_size, Hout*Wout
+    volumn = np.zeros((C, H+2*pad, W+2*pad))
+    cnt = 0
+    for h in range(0, H+pad*2-HH+1, stride):
+      for w in range(0, W+pad*2-WW+1, stride):
+        body = dXci[:, cnt].reshape(C, HH, WW)
+        volumn[:, h:h+HH, w:w+WW] += body
+        cnt += 1
+    # remove pad
+    return volumn[:, pad:H+pad, pad:W+pad] # shape C, H, W
+
+  x, w, b, conv_param, Xc = cache
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  N, F, Hout, Wout = dout.shape
+  Field_body_size = C * HH * WW
+
+  stride, pad = conv_param['stride'], conv_param['pad']
+
+  Wr = w.reshape(F, Field_body_size)
+  dWr = np.zeros_like(Wr)
+  dXc = np.zeros_like(Xc)
+  dx, dw, db = np.zeros_like(x), np.zeros_like(w), np.zeros_like(b)
+
+  for i in range(N):
+    dout_i = dout[i]                 # shape F, Hout, Wout
+    dout_i_t = dout_i.reshape(F, -1) # shape F, Hout*Wout
+    db += dout_i_t.sum(axis=1)       # shape F,
+    dWrXci = dout_i_t                # shape F, Hout*Wout
+    dWr += np.dot(dWrXci, Xc[i].T)   # shape F, Field_body_size
+    dXc[i] = np.dot(Wr.T, dWrXci)    # shape Field_body_size, Hout*Wout
+    dx[i] = to_volumn(dXc[i])        # shape C, H, W
+
+  dw = dWr.reshape(F, C, HH, WW)
+  # dx /= N
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
   return dx, dw, db
+
+
+
 
 
 def max_pool_forward_naive(x, pool_param):
