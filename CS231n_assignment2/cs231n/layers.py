@@ -616,13 +616,42 @@ def max_pool_forward_naive(x, pool_param):
   #############################################################################
   # TODO: Implement the max pooling forward pass                              #
   #############################################################################
-  pass
+  poolh = pool_param['pool_height']
+  poolw = pool_param['pool_width']
+  stride = pool_param['stride']
+  N, C, H, W = x.shape
+
+  def pool(x_piece):
+    # x_piece.shape = H, W
+    poolx = np.zeros((Hout*Wout, ))
+    pos_poolx = np.zeros((Hout*Wout, ))
+    cnt = 0
+    for h in range(0, H-poolh+1, stride):
+      for w in range(0, W-poolw+1, stride):
+        block = x_piece[h:h+poolh, w:w+poolw]
+        poolx[cnt] = np.amax(block)  # max of value
+        pos_poolx[cnt] = np.argmax(block) # max of indice
+        cnt += 1
+    return poolx, pos_poolx
+
+  assert (H - poolh) % stride == 0
+  assert (W - poolw) % stride == 0
+  Hout = int((H - poolh) / stride + 1)
+  Wout = int((W - poolw) / stride + 1)
+
+  out = np.zeros((N, C, Hout*Wout))
+  pos = np.zeros((N, C, Hout*Wout))
+  for n in range(N):
+    for c in range(C):
+      poolx, pos_poolx = pool(x[n, c])
+      out[n, c, :] = poolx
+      pos[n, c, :] = pos_poolx
+  out = out.reshape(N, C, Hout, Wout)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  cache = (x, pool_param)
+  cache = (x, pool_param, pos)
   return out, cache
-
 
 def max_pool_backward_naive(dout, cache):
   """
@@ -639,11 +668,56 @@ def max_pool_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the max pooling backward pass                             #
   #############################################################################
-  pass
+  x, pool_param, pos = cache
+  poolh = pool_param['pool_height']
+  poolw = pool_param['pool_width']
+  stride = pool_param['stride']
+  N, C, H, W = x.shape
+  N, C, Hout, Wout = dout.shape
+
+  def unpool(dout_piece, pos_piece):
+    # dout_piece.shape Hout, Wout
+    # pos_piece.shape Hout*Wout
+    dout_piece = dout_piece.reshape(Hout*Wout)
+    dx_piece = np.zeros((H, W))
+    cnt = 0
+    for h in range(0, H-poolh+1, stride):
+      for w in range(0, W-poolw+1, stride):
+        vmax = dout_piece[cnt]
+        imax = int(pos_piece[cnt])
+        dblock = np.zeros((poolh*poolw))
+        dblock[imax] = vmax
+        dx_piece[h:h+poolh, w:w+poolw] = dblock.reshape(poolh, poolw)
+        cnt += 1
+    return dx_piece
+
+  dx = np.zeros_like(x)
+  for n in range(N):
+    for c in range(C):
+      dout_piece = dout[n, c]
+      pos_piece = pos[n, c]
+      dx[n, c] = unpool(dout_piece, pos_piece)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
   return dx
+
+
+
+def print_shape(x):
+  import sys
+  local = sys._getframe(1).f_locals
+  print(x+'.shape=', local.get(x).shape)
+
+
+
+
+
+
+
+
+
+
 
 
 def spatial_batchnorm_forward(x, gamma, beta, bn_param):
