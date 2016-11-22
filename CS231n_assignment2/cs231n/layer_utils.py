@@ -59,8 +59,10 @@ def conv_relu_backward(dout, cache):
   Backward pass for the conv-relu convenience layer.
   """
   conv_cache, relu_cache = cache
-  da = relu_backward(dout, relu_cache)
-  dx, dw, db = conv_backward_fast(da, conv_cache)
+  # da = relu_backward(dout, relu_cache)
+  dout = relu_backward(dout, relu_cache)
+  # dx, dw, db = conv_backward_fast(da, conv_cache)
+  dx, dw, db = conv_backward_fast(dout, conv_cache)
   return dx, dw, db
 
 
@@ -89,8 +91,11 @@ def conv_relu_pool_backward(dout, cache):
   Backward pass for the conv-relu-pool convenience layer
   """
   conv_cache, relu_cache, pool_cache = cache
-  ds = max_pool_backward_fast(dout, pool_cache)
-  da = relu_backward(ds, relu_cache)
-  dx, dw, db = conv_backward_fast(da, conv_cache)
+  # ds = max_pool_backward_fast(dout, pool_cache)
+  dout = max_pool_backward_fast(dout, pool_cache)  # 省一些内存
+  # da = relu_backward(ds, relu_cache)
+  dout = relu_backward(dout, relu_cache)
+  # dx, dw, db = conv_backward_fast(da, conv_cache)
+  dx, dw, db = conv_backward_fast(dout, conv_cache)
   return dx, dw, db
 

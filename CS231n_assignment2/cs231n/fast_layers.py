@@ -93,10 +93,18 @@ def conv_backward_strides(dout, cache):
 
   db = np.sum(dout, axis=(0, 2, 3))
 
-  dout_reshaped = dout.transpose(1, 0, 2, 3).reshape(F, -1)
-  dw = dout_reshaped.dot(x_cols.T).reshape(w.shape)
+  # dout_reshaped = dout.transpose(1, 0, 2, 3).reshape(F, -1)
+  # dw = dout_reshaped.dot(x_cols.T).reshape(w.shape)
 
-  dx_cols = w.reshape(F, -1).T.dot(dout_reshaped)
+  # dx_cols = w.reshape(F, -1).T.dot(dout_reshaped)
+  # dx_cols.shape = (C, HH, WW, N, out_h, out_w)
+  # dx = col2im_6d_cython(dx_cols, N, C, H, W, HH, WW, pad, stride)
+
+  # 省内存
+  dout = dout.transpose(1, 0, 2, 3).reshape(F, -1)
+  dw = dout.dot(x_cols.T).reshape(w.shape)
+
+  dx_cols = w.reshape(F, -1).T.dot(dout)
   dx_cols.shape = (C, HH, WW, N, out_h, out_w)
   dx = col2im_6d_cython(dx_cols, N, C, H, W, HH, WW, pad, stride)
 
