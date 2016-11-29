@@ -204,6 +204,48 @@ def print_shape(x):
   print(x+'.shape=', local.get(x).shape)
 
 
+def affine_batchnorm_relu_forward(x, w, b, gamma, beta, bn_param):
+  out, fc_cache = affine_forward(x, w, b)
+  out, bn_cache = batchnorm_forward(out, gamma, beta, bn_param)
+  out, relu_cache = relu_forward(out)
+  cache = (fc_cache, bn_cache, relu_cache)
+  return out, cache
+
+def affine_batchnorm_relu_backward(dout, cache):
+  fc_cache, bn_cache, relu_cache = cache
+  dout = relu_backward(dout, relu_cache)
+  dout, dgamma, dbeta = batchnorm_backward(dout, bn_cache)
+  dout, dw, db = affine_backward(dout, fc_cache)
+  return dout, dw, db, dgamma, dbeta
+
+
+
+
+
+
+def conv_bn_relu_pool_forward(x, w, b, gamma, beta, conv_param, bn_param, pool_param):
+  x, conv_cache = conv_forward_fast(x, w, b, conv_param)
+  x, bn_cache = spatial_batchnorm_forward(x, gamma, beta, bn_param)
+  x, relu_cache = relu_forward(x)
+  x, pool_cache = max_pool_forward_fast(x, pool_param)
+  cache = (conv_cache, bn_cache, relu_cache, pool_cache)
+  return x, cache
+
+
+def conv_bn_relu_pool_backward(dout, cache):
+  conv_cache, bn_cache, relu_cache, pool_cache = cache
+  dout = max_pool_backward_fast(dout, pool_cache)
+  dout = relu_backward(dout, relu_cache)
+  dout, dgamma, dbeta = spatial_batchnorm_backward(dout, bn_cache)
+  dout, dw, db = conv_backward_fast(dout, conv_cache)
+  return dout, dw, db, dgamma, dbeta
+
+
+
+
+
+
+
 
 
 
@@ -222,6 +264,7 @@ class CustomConvNet(object):
                num_classes=10,
                weight_scale=1e-3,
                reg=0.0,
+               use_batchnorm=False,
                dtype=np.float32):
     """
     Inputs:
@@ -237,22 +280,14 @@ class CustomConvNet(object):
     """
     self.params = {}
     self.reg = reg
+    self.weight_scale = weight_scale
     self.dtype = dtype
+    self.use_batchnorm = use_batchnorm
 
-
-    ############################################################################
-    # TODO: Initialize weights and biases for the three-layer convolutional    #
-    # network. Weights should be initialized from a Gaussian with standard     #
-    # deviation equal to weight_scale; biases should be initialized to zero.   #
-    # All weights and biases should be stored in the dictionary self.params.   #
-    # Store weights and biases for the convolutional layer using the keys 'W1' #
-    # and 'b1'; use keys 'W2' and 'b2' for the weights and biases of the       #
-    # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
-    # of the output affine layer.                                              #
-    ############################################################################
-
+    # Initialize weights and biases for the three-layer convolutional network.
     dist_normal = lambda size: np.random.normal(loc=0, scale=weight_scale, size=size)
     dist_zero = lambda size: np.zeros(size)
+    dist_ones = lambda size: np.ones(size)
 
     C, H, W = input_dim
     num_conv_relu_pools = len(filters)
@@ -262,10 +297,15 @@ class CustomConvNet(object):
     self.dim_cache = (C, H, W, HH, WW, filters, hidden_dims, num_classes)
 
     # [conv-relu-pool(2,2)]xN - [affine-relu]xM - affine - [softmax]
+    # if use batchnorm
+    # [conv-batchnorm-relu-pool(2,2)]xN - [affine-batchnorm-relu]xM - affine - [softmax]
     for i in range(num_conv_relu_pools):
       F = filters[i]
       self.set_param('conv_weight', i, dist_normal((F, C, HH, WW)))
       self.set_param('conv_bias', i, dist_zero(F))
+      if self.use_batchnorm:
+        self.set_param('conv_bn_gamma', i, dist_ones(F))
+        self.set_param('conv_bn_beta', i, dist_zero(F))
       C = F
 
     Hout = int(H / 2**num_conv_relu_pools)
@@ -283,13 +323,18 @@ class CustomConvNet(object):
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
+    self.bn_params = []
+    if self.use_batchnorm:
+      self.bn_params = [{'mode': 'train'} for i in range(num_conv_relu_pools)]
+
     for k, v in self.params.items():
-      print('init...', k, v.shape)
+      # print('init...', k, v.shape)
       self.params[k] = v.astype(dtype)
 
 
   def get_param(self, kind, num):
     return self.params[kind+str(num)]
+
   def set_param(self, kind, num, val):
     self.params[kind+str(num)] = val
 
@@ -309,11 +354,11 @@ class CustomConvNet(object):
     conv_param = {'stride': 1, 'pad': int((HH - 1) / 2)}
     pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
     scores = None
-    ############################################################################
-    # TODO: Implement the forward pass for the three-layer convolutional net,  #
-    # computing the class scores for X and storing them in the scores          #
-    # variable.                                                                #
-    ############################################################################
+
+    if self.use_batchnorm:
+      for bn_param in self.bn_params:
+        bn_param['mode'] = 'test' if y is None else 'train'
+
     # [conv-relu-pool(2,2)]xN - [affine-relu]xM - affine - [softmax]
 
 
@@ -326,8 +371,13 @@ class CustomConvNet(object):
     for i in range(num_conv_relu_pools):  # conv layers
       W = self.get_param('conv_weight', i)
       b = self.get_param('conv_bias', i)
-
-      out, crp_cache = conv_relu_pool_forward(out, W, b, conv_param, pool_param)
+      if self.use_batchnorm:
+        gamma = self.get_param('conv_bn_gamma', i)
+        beta = self.get_param('conv_bn_beta', i)
+        bn_param = self.bn_params[i]
+        out, crp_cache = conv_bn_relu_pool_forward(out, W, b, gamma, beta, conv_param, bn_param, pool_param)
+      else:
+        out, crp_cache = conv_relu_pool_forward(out, W, b, conv_param, pool_param)
       crp_caches.append(crp_cache)
       N, F, Hout, Wout = out.shape
 
@@ -389,9 +439,16 @@ class CustomConvNet(object):
     dout = dout.reshape((N, F, Hout, Wout))  # crp_out = crp_out.reshape((N, -1))
     zip_crp_caches = zip(range(num_conv_relu_pools), crp_caches)
     for i, crp_cache in reversed(list(zip_crp_caches)):
-      dout, dw, db = conv_relu_pool_backward(dout, crp_cache)
-      W = self.get_param('conv_weight', i)
-      grads['conv_weight' + str(i)] = dw + self.reg * W
-      grads['conv_bias' + str(i)] = db
-
+      if self.use_batchnorm:
+        dout, dw, db, dgamma, dbeta = conv_bn_relu_pool_backward(dout, crp_cache)
+        W = self.get_param('conv_weight', i)
+        grads['conv_weight' + str(i)] = dw + self.reg * W
+        grads['conv_bias' + str(i)] = db
+        grads['conv_bn_gamma' + str(i)] = dgamma
+        grads['conv_bn_beta' + str(i)] = dbeta
+      else:
+        dout, dw, db = conv_relu_pool_backward(dout, crp_cache)
+        W = self.get_param('conv_weight', i)
+        grads['conv_weight' + str(i)] = dw + self.reg * W
+        grads['conv_bias' + str(i)] = db
     return loss, grads

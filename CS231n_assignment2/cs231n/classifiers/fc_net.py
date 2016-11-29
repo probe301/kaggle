@@ -329,7 +329,7 @@ class FullyConnectedNet(object):
 
     if self.use_batchnorm:
       for bn_param in self.bn_params:
-        bn_param[mode] = mode
+        bn_param['mode'] = mode
 
     scores = None
     ############################################################################

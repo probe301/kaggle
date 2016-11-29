@@ -803,7 +803,6 @@ def spatial_batchnorm_backward(dout, cache):
     douti = dout[:, i, :, :].reshape(N, -1)
     dxi, dgammai, dbetai = batchnorm_backward(douti, cache[i])
     dx[:, i, :, :] = dxi.reshape(N, H, W)
-    # print(dgammai.shape)
     dgamma[i] = np.sum(dgammai)
     dbeta[i] = np.sum(dbetai)
   #############################################################################
@@ -811,6 +810,21 @@ def spatial_batchnorm_backward(dout, cache):
   #############################################################################
 
   return dx, dgamma, dbeta
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def svm_loss(x, y):
