@@ -150,6 +150,7 @@ class Solver(object):
     params['lr_decay'] = round(self.lr_decay, 4)
     params['reg'] = round(self.model.reg, 4)
     params['weight_scale'] = round(self.model.weight_scale, 4)
+    params['use_batchnorm'] = self.model.use_batchnorm
     # self.use_batchnorm = use_batchnorm
     # self.use_dropout = dropout > 0
     # config.setdefault('beta1', 0.9)
