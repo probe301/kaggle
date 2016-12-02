@@ -759,13 +759,19 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   # be very short; ours is less than five lines.                              #
   #############################################################################
   N, C, H, W = x.shape
-  out = np.zeros_like(x)
-  cache = []
-  for i in range(C):
-    xci = x[:, i, :, :].reshape(N, -1)
-    outi, cachei = batchnorm_forward(xci, gamma[i], beta[i], bn_param)
-    out[:, i, :, :] = outi.reshape(N, H, W)
-    cache.append(cachei)
+
+  x_temp = x.transpose(0, 2, 3, 1).reshape(N*H*W, C)
+  out, cache = batchnorm_forward(x_temp, gamma, beta, bn_param)
+  out = out.reshape(N, H, W, C).transpose(0, 3, 1, 2)
+
+  # 之前的理解有问题
+  # out = np.zeros_like(x)
+  # cache = []
+  # for i in range(C):
+  #   xci = x[:, i, :, :].reshape(N, -1)
+  #   outi, cachei = batchnorm_forward(xci, gamma[i], beta[i], bn_param)
+  #   out[:, i, :, :] = outi.reshape(N, H, W)
+  #   cache.append(cachei)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -796,15 +802,21 @@ def spatial_batchnorm_backward(dout, cache):
   # be very short; ours is less than five lines.                              #
   #############################################################################
   N, C, H, W = dout.shape
-  dx = np.zeros_like(dout)
-  dgamma = np.zeros((C, ))
-  dbeta = np.zeros((C, ))
-  for i in range(C):
-    douti = dout[:, i, :, :].reshape(N, -1)
-    dxi, dgammai, dbetai = batchnorm_backward(douti, cache[i])
-    dx[:, i, :, :] = dxi.reshape(N, H, W)
-    dgamma[i] = np.sum(dgammai)
-    dbeta[i] = np.sum(dbetai)
+
+  # 之前的理解有问题
+  dout = dout.transpose(0, 2, 3, 1).reshape(N*H*W, C)
+  dx, dgamma, dbeta = batchnorm_backward(dout, cache)
+  dx = dx.reshape(N, H, W, C).transpose(0, 3, 1, 2)
+
+  # dx = np.zeros_like(dout)
+  # dgamma = np.zeros((C, ))
+  # dbeta = np.zeros((C, ))
+  # for i in range(C):
+  #   douti = dout[:, i, :, :].reshape(N, -1)
+  #   dxi, dgammai, dbetai = batchnorm_backward(douti, cache[i])
+  #   dx[:, i, :, :] = dxi.reshape(N, H, W)
+  #   dgamma[i] = np.sum(dgammai)
+  #   dbeta[i] = np.sum(dbetai)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
