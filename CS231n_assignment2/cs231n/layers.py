@@ -516,7 +516,7 @@ def conv_forward_naive(x, w, b, conv_param):
   # arr = np.pad(arr, ((1, ), (0, )), 'constant', constant_values=0)
   # 第二个参数是每个axis的pad数,
   # 对于其中每个pad, 都分为before和after, 只写一个则是before=after
-  Xpad = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant', constant_values=0)
+  Xpad = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), 'constant', constant_values=0)
 
   out = np.zeros((N, F, Hout, Wout))  # out.shape N, F, Hout, Wout
   Xc = np.zeros((N, Field_body_size, Hout*Wout))
