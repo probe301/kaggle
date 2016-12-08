@@ -3,9 +3,9 @@ try:
   from cs231n.im2col_cython import col2im_cython, im2col_cython
   from cs231n.im2col_cython import col2im_6d_cython
 except ImportError:
-  print 'run the following from the cs231n directory and try again:'
-  print 'python setup.py build_ext --inplace'
-  print 'You may also need to restart your iPython kernel'
+  print ('run the following from the cs231n directory and try again:')
+  print ('python setup.py build_ext --inplace')
+  print ('You may also need to restart your iPython kernel')
 
 from cs231n.im2col import *
 
@@ -51,7 +51,7 @@ def conv_forward_strides(x, w, b, conv_param):
   # Pad the input
   p = pad
   x_padded = np.pad(x, ((0, 0), (0, 0), (p, p), (p, p)), mode='constant')
-  
+
   # Figure out output dimensions
   H += 2 * pad
   W += 2 * pad
@@ -62,8 +62,7 @@ def conv_forward_strides(x, w, b, conv_param):
   shape = (C, HH, WW, N, out_h, out_w)
   strides = (H * W, W, 1, C * H * W, stride * W, stride)
   strides = x.itemsize * np.array(strides)
-  x_stride = np.lib.stride_tricks.as_strided(x_padded,
-                shape=shape, strides=strides)
+  x_stride = np.lib.stride_tricks.as_strided(x_padded, shape=shape, strides=strides)
   x_cols = np.ascontiguousarray(x_stride)
   x_cols.shape = (C * HH * WW, N * out_h * out_w)
 
@@ -81,7 +80,7 @@ def conv_forward_strides(x, w, b, conv_param):
 
   cache = (x, w, b, conv_param, x_cols)
   return out, cache
-  
+
 
 def conv_backward_strides(dout, cache):
   x, w, b, conv_param, x_cols = cache
@@ -263,8 +262,7 @@ def max_pool_backward_im2col(dout, cache):
   dout_reshaped = dout.transpose(2, 3, 0, 1).flatten()
   dx_cols = np.zeros_like(x_cols)
   dx_cols[x_cols_argmax, np.arange(dx_cols.shape[1])] = dout_reshaped
-  dx = col2im_indices(dx_cols, (N * C, 1, H, W), pool_height, pool_width,
-              padding=0, stride=stride)
+  dx = col2im_indices(dx_cols, (N * C, 1, H, W), pool_height, pool_width, padding=0, stride=stride)
   dx = dx.reshape(x.shape)
 
   return dx
