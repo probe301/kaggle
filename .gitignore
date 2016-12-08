@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+CS231n_assignment3/cs231n/datasets/
 *.py[cod]
 desktop.ini
 .ipynb_checkpoints/
