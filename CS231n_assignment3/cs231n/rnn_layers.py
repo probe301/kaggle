@@ -203,7 +203,13 @@ def word_embedding_forward(x, W):
   #                                                                            #
   # HINT: This should be very simple.                                          #
   ##############################################################################
-  pass
+  N, T = x.shape
+  V, D = W.shape
+  out = np.zeros((N, T, D))
+  for n in range(N):
+    for t in range(T):
+      out[n, t, :] = W[x[n, t]]
+  cache = (x, W)
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
@@ -218,6 +224,25 @@ def word_embedding_backward(dout, cache):
 
   HINT: Look up the function np.add.at
 
+        from numpy doc
+        Set items 0 and 1 to their negative values:
+        >>> a = np.array([1, 2, 3, 4])
+        >>> np.negative.at(a, [0, 1])
+        >>> print(a)
+        array([-1, -2, 3, 4])
+        Increment items 0 and 1, and increment item 2 twice:
+        >>> a = np.array([1, 2, 3, 4])
+        >>> np.add.at(a, [0, 1, 2, 2], 1)
+        >>> print(a)
+        array([2, 3, 5, 4])
+        Add items 0 and 1 in first array to second array,
+        and store results in first array:
+        >>> a = np.array([1, 2, 3, 4])
+        >>> b = np.array([1, 2])
+        >>> np.add.at(a, [0, 1], b)
+        >>> print(a)
+        array([2, 4, 3, 4])
+
   Inputs:
   - dout: Upstream gradients of shape (N, T, D)
   - cache: Values from the forward pass
@@ -231,11 +256,28 @@ def word_embedding_backward(dout, cache):
   #                                                                            #
   # HINT: Look up the function np.add.at                                       #
   ##############################################################################
-  pass
+  (x, W) = cache
+  N, T = x.shape
+  V, D = W.shape
+  dW = np.zeros_like(W)
+  for n in range(N):
+    for t in range(T):
+      idx = x[n, t]
+      dW[idx] += dout[n, t]
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
   return dW
+
+
+
+
+
+
+
+
+
+
 
 
 def sigmoid(x):
