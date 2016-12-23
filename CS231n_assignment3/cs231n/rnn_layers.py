@@ -36,7 +36,7 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
   prev_h_dot_Wh = prev_h.dot(Wh)
   xWx_prevhWh_b = x_dot_Wx + prev_h_dot_Wh + b
   next_h = np.tanh(xWx_prevhWh_b)
-  cache = (x, prev_h, Wx, Wh, x_dot_Wx, prev_h_dot_Wh, xWx_prevhWh_b)
+  cache = (x, prev_h, Wx, Wh, xWx_prevhWh_b)
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
@@ -65,7 +65,7 @@ def rnn_step_backward(dnext_h, cache):
   # HINT: For the tanh function, you can compute the local derivative in terms #
   # of the output value from tanh.                                             #
   ##############################################################################
-  (x, prev_h, Wx, Wh, x_dot_Wx, prev_h_dot_Wh, xWx_prevhWh_b) = cache
+  (x, prev_h, Wx, Wh, xWx_prevhWh_b) = cache
   dxWx_prevhWh_b = (1 - np.tanh(xWx_prevhWh_b) ** 2) * dnext_h  # shape N, H
   db = np.sum(dxWx_prevhWh_b, axis=0)
   dx = dxWx_prevhWh_b.dot(Wx.T)
@@ -84,14 +84,12 @@ def rnn_forward(x, h0, Wx, Wh, b):
   sequence composed of T vectors, each of dimension D. The RNN uses a hidden
   size of H, and we work over a minibatch containing N sequences. After running
   the RNN forward, we return the hidden states for all timesteps.
-
   Inputs:
   - x: Input data for the entire timeseries, of shape (N, T, D).
   - h0: Initial hidden state, of shape (N, H)
   - Wx: Weight matrix for input-to-hidden connections, of shape (D, H)
   - Wh: Weight matrix for hidden-to-hidden connections, of shape (H, H)
   - b: Biases of shape (H,)
-
   Returns a tuple of:
   - h: Hidden states for the entire timeseries, of shape (N, T, H).
   - cache: Values needed in the backward pass
@@ -102,7 +100,16 @@ def rnn_forward(x, h0, Wx, Wh, b):
   # input data. You should use the rnn_step_forward function that you defined  #
   # above.                                                                     #
   ##############################################################################
-  pass
+  N, T, D = x.shape
+  N, H = h0.shape
+  h = np.zeros((N, T, H))
+  next_h = h0
+  cache_dict = dict()
+  for t in range(T):
+    next_h, cache_step = rnn_step_forward(x[:, t, :], next_h, Wx, Wh, b)
+    h[:, t, :] = next_h
+    cache_dict[t] = cache_step  # include (step) x, prev_h, Wx, Wh, xWx_prevhWh_b
+  cache = x, h0, Wx, Wh, b, cache_dict
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
@@ -129,11 +136,50 @@ def rnn_backward(dh, cache):
   # sequence of data. You should use the rnn_step_backward function that you   #
   # defined above.                                                             #
   ##############################################################################
-  pass
+  N, T, H = dh.shape
+  x, h0, Wx, Wh, b, cache_dict = cache
+  N, T, D = x.shape
+
+  dx = np.zeros_like(x)
+  dWx = np.zeros_like(Wx)
+  dWh = np.zeros_like(Wh)
+  db = np.zeros_like(b)
+
+  dprev_h = np.zeros_like(h0)
+
+  for t in reversed(range(T)):
+    dxstp, dprev_h, dWxstp, dWhstp, dbstp = \
+        rnn_step_backward(dh[:, t, :] + dprev_h, cache_dict[t])
+    # 每个时间 t 对应的 dh 实际上有两个来源
+    # 第一是该 h 输出给 y 的(比如输出为一个字母的error)
+    # 第二是该 h 输出到 t+1 时刻的 h
+    # 本函数的参数 "dh" 实际上就是第一类
+    # 因此在计算反传时, 还得累计第二类, 即 dprev_h (从下一时刻 h 传回来的 dh)
+    # 这就是为什么用 rnn_step_backward(dh[:, t, :] + dprev_h, ...)
+    dx[:, t, :] = dxstp
+    dWx += dWxstp
+    dWh += dWhstp
+    db += dbstp
+
+  dh0 = dprev_h
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
   return dx, dh0, dWx, dWh, db
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def word_embedding_forward(x, W):
