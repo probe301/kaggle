@@ -151,7 +151,7 @@ def rnn_backward(dh, cache):
     dxstp, dprev_h, dWxstp, dWhstp, dbstp = \
         rnn_step_backward(dh[:, t, :] + dprev_h, cache_dict[t])
     # 每个时间 t 对应的 dh 实际上有两个来源
-    # 第一是该 h 输出给 y 的(比如输出为一个字母的error)
+    # 第一是该 h 输出给 y 的(比如输出为一个字母的 error)
     # 第二是该 h 输出到 t+1 时刻的 h
     # 本函数的参数 "dh" 实际上就是第一类
     # 因此在计算反传时, 还得累计第二类, 即 dprev_h (从下一时刻 h 传回来的 dh)
@@ -205,10 +205,7 @@ def word_embedding_forward(x, W):
   ##############################################################################
   N, T = x.shape
   V, D = W.shape
-  out = np.zeros((N, T, D))
-  for n in range(N):
-    for t in range(T):
-      out[n, t, :] = W[x[n, t]]
+  out = W[x.reshape(N * T)].reshape(N, T, D)
   cache = (x, W)
   ##############################################################################
   #                               END OF YOUR CODE                             #
@@ -230,11 +227,13 @@ def word_embedding_backward(dout, cache):
         >>> np.negative.at(a, [0, 1])
         >>> print(a)
         array([-1, -2, 3, 4])
+
         Increment items 0 and 1, and increment item 2 twice:
         >>> a = np.array([1, 2, 3, 4])
         >>> np.add.at(a, [0, 1, 2, 2], 1)
         >>> print(a)
         array([2, 3, 5, 4])
+
         Add items 0 and 1 in first array to second array,
         and store results in first array:
         >>> a = np.array([1, 2, 3, 4])
@@ -260,10 +259,12 @@ def word_embedding_backward(dout, cache):
   N, T = x.shape
   V, D = W.shape
   dW = np.zeros_like(W)
-  for n in range(N):
-    for t in range(T):
-      idx = x[n, t]
-      dW[idx] += dout[n, t]
+  np.add.at(dW, x.reshape(N*T, ), dout.reshape(N*T, D))
+
+  # for n in range(N):   # 更容易理解的做法
+  #   for t in range(T):
+  #     idx = x[n, t]
+  #     dW[idx] += dout[n, t]
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
@@ -420,6 +421,9 @@ def lstm_backward(dh, cache):
   ##############################################################################
 
   return dx, dh0, dWx, dWh, db
+
+
+
 
 
 def temporal_affine_forward(x, w, b):
