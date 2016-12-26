@@ -37,10 +37,10 @@ class CaptioningRNN(object):
     self.cell_type = cell_type
     self.dtype = dtype
     self.word_to_idx = word_to_idx
-    self.idx_to_word = {i: w for w, i in word_to_idx.iteritems()}
+    self.idx_to_word = {i: w for w, i in word_to_idx.items()}
     self.params = {}
 
-    vocab_size = len(word_to_idx)
+    vocab_size = len(word_to_idx)  # V
 
     self._null = word_to_idx['<NULL>']
     self._start = word_to_idx.get('<START>', None)
@@ -69,8 +69,11 @@ class CaptioningRNN(object):
     self.params['b_vocab'] = np.zeros(vocab_size)
 
     # Cast parameters to correct dtype
-    for k, v in self.params.iteritems():
+    for k, v in self.params.items():
       self.params[k] = v.astype(self.dtype)
+
+
+
 
 
   def loss(self, features, captions):
@@ -135,12 +138,87 @@ class CaptioningRNN(object):
     # defined above to store loss and gradients; grads[k] should give the      #
     # gradients for self.params[k].                                            #
     ############################################################################
-    pass
+    '''
+    features: Input image features, of shape (N, D)
+
+    captions: Ground-truth captions;
+              integer array of shape (N, T), each element 0 <= y[i, t] < V
+    captions_in = captions[:, :-1]
+    captions_out = captions[:, 1:]
+
+    W_proj: affine transform from image features to initial hidden state
+            shape input_dim(D), hidden_dim(H)
+
+    W_embed: Word embedding matrix
+             shape vocab_size(V), wordvec_dim(W)
+
+    Wx, Wh, b:
+
+    W_vocab: Weight and bias for the hidden-to-vocab transformation.
+             shape hidden_dim(H), vocab_size(V)
+
+    '''
+
+    ''' (1) Use an affine transformation to compute the initial hidden state
+    from the image features. produce an array of shape (N, H) '''
+    # h0 = features.dot(W_proj) + b_proj
+    # 这个不需要包装成函数, 因为只需要算一次, 不必反传回来
+    # 好吧, 也许还是需要反传回来
+    h0, proj_cache = affine_forward(features, W_proj, b_proj)
+
+    ''' (2) Use a word embedding layer to transform the words in captions_in
+    from indices to vectors, giving an array of shape (N, T, W).'''
+    x, embed_cache = word_embedding_forward(captions_in, W_embed)
+
+    ''' (3) Use either a vanilla RNN or LSTM (depending on self.cell_type) to
+    process the sequence of input word vectors and produce hidden state
+    vectors for all timesteps, producing an array of shape (N, T, H).'''
+    h, rnn_cache = rnn_forward(x, h0, Wx, Wh, b)
+
+    ''' (4) Use a (temporal) affine transformation to compute scores over the
+    vocabulary at every timestep using the hidden states, giving an
+    array of shape (N, T, V).'''
+    out, affine_cache = temporal_affine_forward(h, W_vocab, b_vocab)
+
+    ''' (5) Use (temporal) softmax to compute loss using captions_out, ignoring
+    the points where the output word is <NULL> using the mask above.'''
+    loss, dout = temporal_softmax_loss(out, captions_out, mask, verbose=False)
+    # 为什么不需要 L2 正则?
+
+
+    # forward done, start backward
+
+    dh, dW_vocab, db_vocab = temporal_affine_backward(dout, affine_cache)
+    dx, dh0, dWx, dWh, db = rnn_backward(dh, rnn_cache)
+    dW_embed = word_embedding_backward(dx, embed_cache)
+    dx, dW_proj, db_proj = affine_backward(dh0, proj_cache)
+
+    grads['W_vocab'] = dW_vocab
+    grads['b_vocab'] = db_vocab
+    grads['Wx'] = dWx
+    grads['Wh'] = dWh
+    grads['b'] = db
+    grads['W_embed'] = dW_embed
+    grads['W_proj'] = dW_proj
+    grads['b_proj'] = db_proj
+
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
 
     return loss, grads
+
+
+
+
+
+
+
+
+
+
+
 
 
   def sample(self, features, max_length=30):
