@@ -275,8 +275,26 @@ class CaptioningRNN(object):
     # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
     # a loop.                                                                 #
     ###########################################################################
-    pass
+    h, proj_cache = affine_forward(features, W_proj, b_proj)
+    current_words = self._start * np.ones((N, 1), dtype=np.int32)
+    for t in range(max_length):
+      x, cache = word_embedding_forward(current_words, W_embed) # => (N, T, D)
+      x = x[:, -1, :]  # (N, D) 下面的 rnn_step_forward 需要输入不带 T 维度
+      h, cache = rnn_step_forward(x, h, Wx, Wh, b)
+      scores, cache = affine_forward(h, W_vocab, b_vocab)
+      current_words = np.argmax(scores, axis=1)
+      captions[:, t] = current_words
+      current_words = current_words.reshape(N, 1)  # 添加 T 维度, 虽然 T 只有 1
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
     return captions
+
+
+
+
+def print_shape(x):
+  import sys
+  local = sys._getframe(1).f_locals
+  print(x+'.shape=', local.get(x).shape)
+

@@ -7,6 +7,12 @@ networks.
 """
 
 
+def print_shape(x):
+  import sys
+  local = sys._getframe(1).f_locals
+  print(x+'.shape=', local.get(x).shape)
+
+
 def rnn_step_forward(x, prev_h, Wx, Wh, b):
   """
   Run the forward pass for a single timestep of a vanilla RNN that uses a tanh
