@@ -173,7 +173,10 @@ class CaptioningRNN(object):
     ''' (3) Use either a vanilla RNN or LSTM (depending on self.cell_type) to
     process the sequence of input word vectors and produce hidden state
     vectors for all timesteps, producing an array of shape (N, T, H).'''
-    h, rnn_cache = rnn_forward(x, h0, Wx, Wh, b)
+    if self.cell_type == 'rnn':
+      h, rnn_cache = rnn_forward(x, h0, Wx, Wh, b)
+    elif self.cell_type == 'lstm':
+      h, rnn_cache = lstm_forward(x, h0, Wx, Wh, b)
 
     ''' (4) Use a (temporal) affine transformation to compute scores over the
     vocabulary at every timestep using the hidden states, giving an
@@ -189,7 +192,10 @@ class CaptioningRNN(object):
     # forward done, start backward
 
     dh, dW_vocab, db_vocab = temporal_affine_backward(dout, affine_cache)
-    dx, dh0, dWx, dWh, db = rnn_backward(dh, rnn_cache)
+    if self.cell_type == 'rnn':
+      dx, dh0, dWx, dWh, db = rnn_backward(dh, rnn_cache)
+    elif self.cell_type == 'lstm':
+      dx, dh0, dWx, dWh, db = lstm_backward(dh, rnn_cache)
     dW_embed = word_embedding_backward(dx, embed_cache)
     dx, dW_proj, db_proj = affine_backward(dh0, proj_cache)
 
@@ -276,11 +282,16 @@ class CaptioningRNN(object):
     # a loop.                                                                 #
     ###########################################################################
     h, proj_cache = affine_forward(features, W_proj, b_proj)
+    if self.cell_type == 'lstm':
+      c = np.zeros_like(h)
     current_words = self._start * np.ones((N, 1), dtype=np.int32)
     for t in range(max_length):
       x, cache = word_embedding_forward(current_words, W_embed) # => (N, T, D)
       x = x[:, -1, :]  # (N, D) 下面的 rnn_step_forward 需要输入不带 T 维度
-      h, cache = rnn_step_forward(x, h, Wx, Wh, b)
+      if self.cell_type == 'rnn':
+        h, cache = rnn_step_forward(x, h, Wx, Wh, b)
+      elif self.cell_type == 'lstm':
+        h, c, cache = lstm_step_forward(x, h, c, Wx, Wh, b)
       scores, cache = affine_forward(h, W_vocab, b_vocab)
       current_words = np.argmax(scores, axis=1)
       captions[:, t] = current_words
