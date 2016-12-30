@@ -1,4 +1,4 @@
-import cPickle as pickle
+import _pickle as pickle
 import numpy as np
 import os
 from scipy.misc import imread
@@ -97,14 +97,15 @@ def load_tiny_imagenet(path, dtype=np.float32, subtract_mean=True):
   # First load wnids
   with open(os.path.join(path, 'wnids.txt'), 'r') as f:
     wnids = [x.strip() for x in f]
+  print(len(wnids))
 
   # Map wnids to integer labels
   wnid_to_label = {wnid: i for i, wnid in enumerate(wnids)}
-
+  wnids = wnids[:5]
   # Use words.txt to get names for each class
   with open(os.path.join(path, 'words.txt'), 'r') as f:
     wnid_to_words = dict(line.split('\t') for line in f)
-    for wnid, words in wnid_to_words.iteritems():
+    for wnid, words in wnid_to_words.items():
       wnid_to_words[wnid] = [w.strip() for w in words.split(',')]
   class_names = [wnid_to_words[wnid] for wnid in wnids]
 
