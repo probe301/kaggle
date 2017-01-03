@@ -45,7 +45,7 @@ class PretrainedCNN(object):
       if self.conv_params[i]['stride'] == 2: cur_size /= 2
 
     # Add a fully-connected layers
-    fan_in = cur_size * cur_size * self.num_filters[-1]
+    fan_in = int(cur_size * cur_size * self.num_filters[-1])
     self.params['W%d' % (i + 2)] = np.sqrt(2.0 / fan_in) * np.random.randn(fan_in, hidden_dim)
     self.params['b%d' % (i + 2)] = np.zeros(hidden_dim)
     self.params['gamma%d' % (i + 2)] = np.ones(hidden_dim)
