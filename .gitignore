@@ -1,5 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+CS231n_assignment1/cs231n/datasets/
+CS231n_assignment2/cs231n/datasets/
 CS231n_assignment3/cs231n/datasets/
 *.py[cod]
 desktop.ini
