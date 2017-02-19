@@ -9,7 +9,10 @@ desktop.ini
 *.swp
 *.pyc
 .env/*
-
+*.rec
+*.bin
+*.gz
+*.lst
 
 # C extensions
 *.so
