@@ -14,6 +14,13 @@ desktop.ini
 *.gz
 *.lst
 
+Digit Recognizer using knn rf/train.csv
+Digit Recognizer using knn rf/test.csv
+
+
+
+
+
 # C extensions
 *.so
 *.exe
